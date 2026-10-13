@@ -1,0 +1,16 @@
+# ========================================================
+# MarkToHTML Dependencies
+# Python >= 3.10
+# ========================================================
+
+# GUI & Chromium Web Engine Viewer
+PySide6>=6.5.0
+
+# Markdown to HTML Core Converter & Extensions
+Markdown>=3.4.0
+
+# Code Syntax Highlighting
+Pygments>=2.15.0
+
+# (Optional) Standalone EXE packaging
+# pyinstaller>=6.0.0

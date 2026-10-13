@@ -1,0 +1,29 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller / Build outputs (300MB+ exe, build, dist)
+build/
+dist/
+*.exe
+*.manifest
+*.spec.bak
+
+# Local private notes & work logs (GitHub 업로드 제외)
+*.local.*
+TODO.local.md
+_notes/
+
+# Environments & Sensitive Files (DB 비밀번호, 토큰 등)
+.env
+*.env
+.venv/
+venv*/
+ENV/
+
+# OS and Editor generated files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
