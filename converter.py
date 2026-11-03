@@ -141,7 +141,7 @@ body {
 }
 
 .markdown-body {
-    max-width: 920px;
+    max-width: var(--content-max-width, 920px);
     margin: 0 auto;
     padding: 40px 32px;
 }
@@ -265,6 +265,7 @@ table {
 table th, table td {
     padding: 8px 14px;
     border: 1px solid var(--color-border-default);
+    word-break: keep-all;
 }
 
 table th {
@@ -340,11 +341,12 @@ THEMES = {
 }
 
 
-def get_empty_placeholder_html(theme_name: str = "Modern Charcoal (모던 차콜)") -> str:
+def get_empty_placeholder_html(theme_name: str = "Modern Charcoal (모던 차콜)", content_max_width: str = "920px") -> str:
     """Returns a welcome / placeholder HTML when no file is selected."""
     theme_info = THEMES.get(theme_name, THEMES["Modern Charcoal (모던 차콜)"])
     pygments_css = HtmlFormatter(style=theme_info["pygments_style"]).get_style_defs('.codehilite')
-    theme_and_base_css = f"{theme_info['theme_css']}\n{BASE_MARKDOWN_CSS}"
+    width_css = f":root {{ --content-max-width: {content_max_width}; }}"
+    theme_and_base_css = f"{width_css}\n{theme_info['theme_css']}\n{BASE_MARKDOWN_CSS}"
     
     cfg = load_style_config()
     config_override_css = build_css_from_config(cfg)
@@ -428,7 +430,7 @@ def get_empty_placeholder_html(theme_name: str = "Modern Charcoal (모던 차콜
     return html
 
 
-def convert_markdown_to_html(md_text: str, title: str = "MarkToHTML Document", theme_name: str = "Modern Charcoal (모던 차콜)") -> str:
+def convert_markdown_to_html(md_text: str, title: str = "MarkToHTML Document", theme_name: str = "Modern Charcoal (모던 차콜)", content_max_width: str = "920px") -> str:
     """
     Converts markdown text to a full, self-contained standalone HTML page.
     Includes embedded CSS for layout and syntax highlighting, plus style_config.json overrides.
@@ -436,8 +438,9 @@ def convert_markdown_to_html(md_text: str, title: str = "MarkToHTML Document", t
     theme_info = THEMES.get(theme_name, THEMES["Modern Charcoal (모던 차콜)"])
     pygments_css = HtmlFormatter(style=theme_info["pygments_style"]).get_style_defs('.codehilite')
 
-    # 1. Base Theme CSS + BASE_MARKDOWN_CSS (centered layout: margin: 0 auto; max-width: 920px; padding: 40px 32px)
-    theme_and_base_css = f"{theme_info['theme_css']}\n{BASE_MARKDOWN_CSS}"
+    # 1. Base Theme CSS + BASE_MARKDOWN_CSS with adjustable content width
+    width_css = f":root {{ --content-max-width: {content_max_width}; }}"
+    theme_and_base_css = f"{width_css}\n{theme_info['theme_css']}\n{BASE_MARKDOWN_CSS}"
 
     # 2. Layer style_config.json text overrides on top for any selected theme
     cfg = load_style_config()
@@ -488,13 +491,13 @@ def convert_markdown_to_html(md_text: str, title: str = "MarkToHTML Document", t
     return full_html
 
 
-def convert_file(file_path: str, theme_name: str = "Modern Charcoal (모던 차콜)") -> str:
+def convert_file(file_path: str, theme_name: str = "Modern Charcoal (모던 차콜)", content_max_width: str = "920px") -> str:
     """Reads a markdown file from disk and converts it to HTML."""
     if not os.path.exists(file_path):
-        return get_empty_placeholder_html(theme_name)
+        return get_empty_placeholder_html(theme_name, content_max_width=content_max_width)
     
     with open(file_path, "r", encoding="utf-8", errors="replace") as f:
         md_text = f.read()
         
     title = os.path.splitext(os.path.basename(file_path))[0]
-    return convert_markdown_to_html(md_text, title=title, theme_name=theme_name)
+    return convert_markdown_to_html(md_text, title=title, theme_name=theme_name, content_max_width=content_max_width)

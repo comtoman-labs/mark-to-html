@@ -5,13 +5,14 @@ export tools, and a toggleable raw Markdown source editor.
 """
 
 import os
+import re
 import tempfile
 import time
-from PySide6.QtCore import Qt, Signal, QUrl, QTimer
+from PySide6.QtCore import Qt, Signal, QUrl, QTimer, QSettings
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QComboBox, QFileDialog, QFrame, QMessageBox, QApplication,
-    QStackedWidget, QPlainTextEdit
+    QStackedWidget, QPlainTextEdit, QSlider
 )
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -27,6 +28,8 @@ class WebPreviewerWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.settings = QSettings("MarkToHTML", "MarkToHTML")
+        self.content_width = self.settings.value("content_width", 920, type=int)
         self.current_file_path = None
         self.current_raw_md = ""
         self.current_theme = "Modern Charcoal (모던 차콜)"
@@ -73,6 +76,50 @@ class WebPreviewerWidget(QWidget):
         self.btn_cancel_edit.clicked.connect(self._on_cancel_edit)
         self.btn_cancel_edit.hide()
         header_layout.addWidget(self.btn_cancel_edit)
+
+        # Vertical Separator
+        v_sep = QFrame()
+        v_sep.setFrameShape(QFrame.VLine)
+        v_sep.setFrameShadow(QFrame.Sunken)
+        v_sep.setStyleSheet("color: #374151; margin: 4px 2px;")
+        header_layout.addWidget(v_sep)
+
+        # Content Width Controller (Slider + Live Label + Presets)
+        self.width_icon_label = QLabel("📏 폭:")
+        self.width_icon_label.setStyleSheet("color: #9ca3af; font-size: 12px; font-weight: 500;")
+        header_layout.addWidget(self.width_icon_label)
+
+        self.width_slider = QSlider(Qt.Horizontal)
+        self.width_slider.setRange(600, 2000)
+        self.width_slider.setSingleStep(20)
+        self.width_slider.setPageStep(100)
+        self.width_slider.setFixedWidth(115)
+        self.width_slider.setFixedHeight(22)
+        self.width_slider.setToolTip("본문 중앙 표시 폭 조절 (600px ~ 2000px, 2000px은 100% 전체 폭)")
+        self.width_slider.setValue(self.content_width)
+        self.width_slider.valueChanged.connect(self._on_width_slider_changed)
+        header_layout.addWidget(self.width_slider)
+
+        display_text = "100%" if self.content_width >= 2000 else f"{self.content_width}px"
+        self.width_value_label = QLabel(display_text)
+        self.width_value_label.setStyleSheet("color: #60a5fa; font-weight: 600; font-size: 11px;")
+        self.width_value_label.setFixedWidth(44)
+        self.width_value_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+        header_layout.addWidget(self.width_value_label)
+
+        self.btn_width_reset = QPushButton("기본")
+        self.btn_width_reset.setObjectName("compactButton")
+        self.btn_width_reset.setFixedHeight(24)
+        self.btn_width_reset.setToolTip("기본 중앙 폭(920px)으로 복원")
+        self.btn_width_reset.clicked.connect(lambda: self.width_slider.setValue(920))
+        header_layout.addWidget(self.btn_width_reset)
+
+        self.btn_width_full = QPushButton("100%")
+        self.btn_width_full.setObjectName("compactButton")
+        self.btn_width_full.setFixedHeight(24)
+        self.btn_width_full.setToolTip("화면 가득 채우기 (전체 폭 100%)")
+        self.btn_width_full.clicked.connect(lambda: self.width_slider.setValue(2000))
+        header_layout.addWidget(self.btn_width_full)
 
         header_layout.addStretch()
 
@@ -138,12 +185,44 @@ class WebPreviewerWidget(QWidget):
 
     def _show_placeholder(self):
         """Displays welcome placeholder screen."""
-        self.current_html = get_empty_placeholder_html(self.current_theme)
+        self.current_html = get_empty_placeholder_html(self.current_theme, content_max_width=self.get_content_width_css())
         self.current_raw_md = ""
         self._set_edit_mode_ui(False)
         self.web_view.setHtml(self.current_html)
         self.file_badge.setText("선택된 파일 없음")
         self.file_badge.setToolTip("")
+
+    def get_content_width_css(self) -> str:
+        """Returns the CSS string for the current content max-width."""
+        val = self.width_slider.value() if hasattr(self, 'width_slider') else getattr(self, 'content_width', 920)
+        return "100%" if val >= 2000 else f"{val}px"
+
+    def _on_width_slider_changed(self, value: int):
+        """Dynamically adjusts content width in real-time via DOM manipulation without reload."""
+        self.content_width = value
+        css_val = "100%" if value >= 2000 else f"{value}px"
+        self.width_value_label.setText(css_val)
+
+        # Persist user preference
+        self.settings.setValue("content_width", value)
+
+        # Instant zero-flicker DOM update
+        js = f"""
+        (function() {{
+            document.documentElement.style.setProperty('--content-max-width', '{css_val}');
+            var mb = document.querySelector('.markdown-body');
+            if (mb) mb.style.maxWidth = '{css_val}';
+        }})();
+        """
+        self.web_view.page().runJavaScript(js)
+
+        # Update cached HTML string for exports
+        if self.current_html and '--content-max-width:' in self.current_html:
+            self.current_html = re.sub(
+                r'--content-max-width:\s*[^;]+;',
+                f'--content-max-width: {css_val};',
+                self.current_html
+            )
 
     def _set_edit_mode_ui(self, editing: bool):
         """Toggles header UI and stack view between preview and edit mode."""
@@ -204,7 +283,9 @@ class WebPreviewerWidget(QWidget):
         file_name = os.path.basename(self.current_file_path)
         base_dir = os.path.dirname(self.current_file_path)
         title = os.path.splitext(file_name)[0]
-        self.current_html = convert_markdown_to_html(new_md, title=title, theme_name=self.current_theme)
+        self.current_html = convert_markdown_to_html(
+            new_md, title=title, theme_name=self.current_theme, content_max_width=self.get_content_width_css()
+        )
 
         base_url = QUrl.fromLocalFile(base_dir + os.sep)
         self.web_view.setHtml(self.current_html, base_url)
@@ -271,7 +352,9 @@ class WebPreviewerWidget(QWidget):
 
         self.current_raw_md = md_text
         title = os.path.splitext(file_name)[0]
-        self.current_html = convert_markdown_to_html(md_text, title=title, theme_name=self.current_theme)
+        self.current_html = convert_markdown_to_html(
+            md_text, title=title, theme_name=self.current_theme, content_max_width=self.get_content_width_css()
+        )
 
         # Use local file base URL so relative images resolve correctly!
         base_url = QUrl.fromLocalFile(base_dir + os.sep)

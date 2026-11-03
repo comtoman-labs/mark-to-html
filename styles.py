@@ -127,6 +127,49 @@ QPushButton#cancelButton:hover {
     color: #ffffff;
 }
 
+/* Compact Presets Buttons */
+QPushButton#compactButton {
+    background-color: #252836;
+    border: 1px solid #3d4257;
+    border-radius: 4px;
+    color: #d1d5db;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-weight: 600;
+}
+QPushButton#compactButton:hover {
+    background-color: #3b82f6;
+    border-color: #60a5fa;
+    color: #ffffff;
+}
+QPushButton#compactButton:pressed {
+    background-color: #1d4ed8;
+}
+
+/* Horizontal Width Slider */
+QSlider::groove:horizontal {
+    height: 4px;
+    background: #374151;
+    border-radius: 2px;
+}
+QSlider::sub-page:horizontal {
+    background: #3b82f6;
+    border-radius: 2px;
+}
+QSlider::handle:horizontal {
+    background: #60a5fa;
+    border: 1px solid #93c5fd;
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    margin-bottom: -5px;
+    border-radius: 7px;
+}
+QSlider::handle:horizontal:hover {
+    background: #93c5fd;
+    border-color: #ffffff;
+}
+
 /* Markdown Source Code Editor */
 QPlainTextEdit#markdownEditor {
     background-color: #1e1e20;
