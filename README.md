@@ -4,6 +4,14 @@ PySide6 및 크로미움 웹엔진(`QWebEngineView`) 기반의 **마크다운(MD
 
 ---
 
+## 🖥️ 프로그램 실행 화면
+
+<p align="center">
+  <img src="doc/screenshot.png" alt="MarkToHTML 실행 화면" width="100%">
+</p>
+
+---
+
 ## 🌟 주요 기능
 
 1. **좌측 파일 탐색기 (`FileExplorerWidget`)**
@@ -60,6 +68,8 @@ python main.py
 ## 📁 프로젝트 구조
 ```text
 mark-to-html/
+├── doc/
+│   └── screenshot.png   # 프로그램 실행 화면 스크린샷
 ├── main.py              # 프로그램 진입점 (Entry Point)
 ├── main_window.py       # 메인 윈도우 (좌우 분할 스플리터)
 ├── explorer.py          # 좌측 파일 탐색창 (트리 뷰 + 검색 + 필터)
